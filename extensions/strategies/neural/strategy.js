@@ -90,7 +90,7 @@ module.exports = {
         var predict = function(data) {
           var x = new convnetjs.Vol(5, 1, s.neural.neuralDepth, 0)
 
-          for (var k = 0; k < s.neural.neuralDepth; k++) {
+          for (var k = 0; k < data.length; k++) {
             x.set(0,0,k,data[k].open)
             x.set(1,0,k,data[k].close)
             x.set(2,0,k,data[k].high)
