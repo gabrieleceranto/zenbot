@@ -1,45 +1,45 @@
-const util = require('util')
+// const util = require('util')
+const path = require('path')
 
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const csvWriter = createCsvWriter({
-  path: 'csv-exporter.csv',
-  header: [
-    {id: 'period_id', title: 'period_id'},
-    {id: 'size', title: 'size'},
-    {id: 'time', title: 'time'},
-    {id: 'open', title: 'open'},
-    {id: 'high', title: 'high'},
-    {id: 'low', title: 'low'},
-    {id: 'close', title: 'close'},
-    {id: 'volume', title: 'volume'},
-    {id: 'close_time', title: 'close_time'},
-    {id: 'latest_trade_time', title: 'latest_trade_time'},
-    {id: 'last_try_trade', title: 'last_try_trade'},
-  ]
-});
+const createCsvWriter = require('csv-writer').createArrayCsvWriter;
+const csvFile = path.resolve(__dirname, '..', '..', '..', 'simulations', 'export.csv')
 
-/*
-period:
-   { period_id: '5m5238592',
-     size: '5m',
-     time: 1571577600000,
-     open: 7147,
-     high: 7147.7,
-     low: 7140.2,
-     close: 7140.2,
-     volume: 9.263789180000002,
-     close_time: 1571577899999,
-     latest_trade_time: 1571577838989,
-     last_try_trade: 1609872123573 }
-*/
+function getCsvWriter(s) {
+    if (!s.csvWriter) {
+        s.csvWriter = createCsvWriter({
+          path: csvFile,
+          header: getHeaders(s.options.lookback_periods)
+        })
+    }
+    return s.csvWriter
+}
+
+function getHeaders(lookbackPeriods) {
+    let headers = []
+    for (let i = 0; i < lookbackPeriods; ++i) {
+        headers.push('period_id' + i)
+        headers.push('size' + i)
+        headers.push('time' + i)
+        headers.push('open' + i)
+        headers.push('high' + i)
+        headers.push('low' + i)
+        headers.push('close' + i)
+        headers.push('volume' + i)
+        headers.push('close_time' + i)
+        headers.push('latest_trade_time' + i)
+        headers.push('last_try_trade' + i)
+    }
+    return headers
+}
 
 module.exports = {
   name: 'csv_exporter',
   description: 'Just do nothing. Exports on CSV.',
 
   getOptions: function () {
-    this.option('period', 'period length, same as --period_length', String, '30m')
-    this.option('period_length', 'period length, same as --period', String, '30m')
+    this.option('period', 'period length, same as --period_length', String, '5m')
+    this.option('period_length', 'period length, same as --period', String, '5m')
+    this.option('lookback_periods', 'min. number of history periods', Number, 72)
   },
 
   calculate: function (s) {
@@ -47,11 +47,33 @@ module.exports = {
   },
 
   onPeriod: function (s, cb) {
-      csvWriter.writeRecords([s.period])
-          .then(() => {
-              console.log('Written period ' + s.period.period_id)
-              cb()
+      // console.log(util.inspect(s, {showHidden: false, depth: null}))
+      if (s.lookback && s.lookback.length >= s.options.lookback_periods) {
+          let row = []
+          s.lookback.splice(0, s.options.lookback_periods).forEach((period) => {
+              row.push(period.period_id)
+              row.push(period.size)
+              row.push(period.time)
+              row.push(period.open)
+              row.push(period.high)
+              row.push(period.low)
+              row.push(period.close)
+              row.push(period.volume)
+              row.push(period.close_time)
+              row.push(period.latest_trade_time)
+              row.push(period.last_try_trade)
           })
+          getCsvWriter(s).writeRecords([row])
+              .then(() => {
+                  console.log('Written ' + s.options.lookback_periods + ' periods')
+                  cb()
+              })
+              .catch(function(reason) {
+                  console.log(reason)
+              })
+      } else {
+          cb()
+      }
   },
 
   onReport: function () {
