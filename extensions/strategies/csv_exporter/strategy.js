@@ -50,7 +50,7 @@ module.exports = {
       // console.log(util.inspect(s, {showHidden: false, depth: null}))
       if (s.lookback && s.lookback.length >= s.options.lookback_periods) {
           let row = []
-          s.lookback.splice(0, s.options.lookback_periods).forEach((period) => {
+          s.lookback.slice(0, s.options.lookback_periods).forEach((period) => {
               row.push(period.period_id)
               row.push(period.size)
               row.push(period.time)
@@ -65,11 +65,8 @@ module.exports = {
           })
           getCsvWriter(s).writeRecords([row])
               .then(() => {
-                  console.log('Written ' + s.options.lookback_periods + ' periods')
+                  // console.log('Written ' + s.options.lookback_periods + ' periods')
                   cb()
-              })
-              .catch(function(reason) {
-                  console.log(reason)
               })
       } else {
           cb()
