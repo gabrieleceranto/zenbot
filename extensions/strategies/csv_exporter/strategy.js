@@ -15,7 +15,7 @@ function getCsvWriter(s) {
 }
 
 function getHeaders(lookbackPeriods) {
-    let headers = []
+    let headers = ['target']
     for (let i = 0; i < lookbackPeriods; ++i) {
         headers.push('period_id' + i)
         headers.push('size' + i)
@@ -40,6 +40,7 @@ module.exports = {
     this.option('period', 'period length, same as --period_length', String, '5m')
     this.option('period_length', 'period length, same as --period', String, '5m')
     this.option('lookback_periods', 'min. number of history periods', Number, 72)
+    this.option('lookforward_periods', 'min. number of future periods to look to determine the outcome', Number, 18)
   },
 
   calculate: function (s) {
@@ -48,9 +49,21 @@ module.exports = {
 
   onPeriod: function (s, cb) {
       // console.log(util.inspect(s, {showHidden: false, depth: null}))
-      if (s.lookback && s.lookback.length >= s.options.lookback_periods) {
-          let row = []
-          s.lookback.slice(0, s.options.lookback_periods).forEach((period) => {
+      let requiredPeriods = s.options.lookback_periods + s.options.lookforward_periods
+      if (s.lookback && s.lookback.length >= requiredPeriods) {
+          let futurePeriods = s.lookback.slice(0, s.options.lookforward_periods)
+          let historyPeriods = s.lookback.slice(s.options.lookforward_periods, s.options.lookback_periods)
+          let currentValue = historyPeriods[0].close
+
+          // Set to 1 (buy) when all the future periods are greater than the current value
+          // Pretty raw check, but it's a beginning..
+          let greaterPeriods = futurePeriods.filter(e => e.close >= (currentValue*.99))
+          let outcome = greaterPeriods.length >= (s.options.lookforward_periods * .8);
+
+          // console.log(currentValue, outcome)
+
+          let row = [outcome|0]
+          historyPeriods.forEach((period) => {
               row.push(period.period_id)
               row.push(period.size)
               row.push(period.time)
