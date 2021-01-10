@@ -15,19 +15,13 @@ function getCsvWriter(s) {
 }
 
 function getHeaders(lookbackPeriods) {
-    let headers = ['target']
+    let headers = ['target', 'period_id', 'size', 'time']
     for (let i = 0; i < lookbackPeriods; ++i) {
-        headers.push('period_id' + i)
-        headers.push('size' + i)
-        headers.push('time' + i)
         headers.push('open' + i)
         headers.push('high' + i)
         headers.push('low' + i)
         headers.push('close' + i)
         headers.push('volume' + i)
-        headers.push('close_time' + i)
-        headers.push('latest_trade_time' + i)
-        headers.push('last_try_trade' + i)
     }
     return headers
 }
@@ -52,7 +46,7 @@ module.exports = {
       let requiredPeriods = s.options.lookback_periods + s.options.lookforward_periods
       if (s.lookback && s.lookback.length >= requiredPeriods) {
           let futurePeriods = s.lookback.slice(0, s.options.lookforward_periods)
-          let historyPeriods = s.lookback.slice(s.options.lookforward_periods, s.options.lookback_periods)
+          let historyPeriods = s.lookback.slice(s.options.lookforward_periods, s.options.lookforward_periods + s.options.lookback_periods)
           let currentValue = historyPeriods[0].close
 
           // Set to 1 (buy) when all the future periods are greater than the current value
@@ -63,18 +57,15 @@ module.exports = {
           // console.log(currentValue, outcome)
 
           let row = [outcome|0]
+          row.push(s.period.period_id)
+          row.push(s.period.size)
+          row.push(s.period.time)
           historyPeriods.forEach((period) => {
-              row.push(period.period_id)
-              row.push(period.size)
-              row.push(period.time)
               row.push(period.open)
               row.push(period.high)
               row.push(period.low)
               row.push(period.close)
               row.push(period.volume)
-              row.push(period.close_time)
-              row.push(period.latest_trade_time)
-              row.push(period.last_try_trade)
           })
           getCsvWriter(s).writeRecords([row])
               .then(() => {
