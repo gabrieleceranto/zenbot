@@ -1,5 +1,6 @@
-// const util = require('util')
+const util = require('util')
 const path = require('path')
+const talib = require('talib')
 
 const createCsvWriter = require('csv-writer').createArrayCsvWriter;
 const csvFile = path.resolve(__dirname, '..', '..', '..', 'simulations', 'export.csv')
@@ -15,7 +16,7 @@ function getCsvWriter(s) {
 }
 
 function getHeaders(lookbackPeriods) {
-    let headers = ['target', 'period_id', 'size', 'time']
+    let headers = ['period_id', 'size', 'time']
     for (let i = 0; i < lookbackPeriods; ++i) {
         headers.push('open' + i)
         headers.push('high' + i)
@@ -49,24 +50,33 @@ module.exports = {
           let historyPeriods = s.lookback.slice(s.options.lookforward_periods, s.options.lookforward_periods + s.options.lookback_periods)
           let currentValue = historyPeriods[0].close
 
-          // Set to 1 (buy) when all the future periods are greater than the current value
-          // Pretty raw check, but it's a beginning..
-          let greaterPeriods = futurePeriods.filter(e => e.close >= (currentValue*.99))
-          let outcome = greaterPeriods.length >= (s.options.lookforward_periods * .8);
-
-          // console.log(currentValue, outcome)
-
-          let row = [outcome|0]
+          let row = []
           row.push(s.period.period_id)
           row.push(s.period.size)
           row.push(s.period.time)
-          historyPeriods.forEach((period) => {
-              row.push(period.open)
-              row.push(period.high)
-              row.push(period.low)
-              row.push(period.close)
-              row.push(period.volume)
-          })
+          row.push(s.period.open)
+          row.push(s.period.high)
+          row.push(s.period.low)
+          row.push(s.period.close)
+          row.push(s.period.volume)
+          // historyPeriods.forEach((period) => {
+          //     row.push(period.open)
+          //     row.push(period.high)
+          //     row.push(period.low)
+          //     row.push(period.close)
+          //     row.push(period.volume)
+          // })
+          for (let i=1; i<s.options.lookback_periods; ++i) {
+              let period = historyPeriods[i]
+
+              // Calculate % increase/decrease compared to the current value
+              row.push((s.period.open   - period.open  ) / period.open  )
+              row.push((s.period.high   - period.high  ) / period.high  )
+              row.push((s.period.low    - period.low   ) / period.low   )
+              row.push((s.period.close  - period.close ) / period.close )
+              row.push((s.period.volume - period.volume) / period.volume)
+          }
+
           getCsvWriter(s).writeRecords([row])
               .then(() => {
                   // console.log('Written ' + s.options.lookback_periods + ' periods')
