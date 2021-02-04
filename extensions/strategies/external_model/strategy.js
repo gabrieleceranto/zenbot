@@ -39,26 +39,29 @@ module.exports = {
               params['volume' + i] = ((s.period.volume - period.volume) / period.volume)
           }
 
-          request.post(
-              PREDICTOR_ENDPOINT,
-              {json: params},
-              (error, res, body) => {
-                  if (error) {
-                      console.error(error)
-                      cb()
-                      return
-                  }
+          new Promise((resolve, reject) => {
+              request.post(
+                  PREDICTOR_ENDPOINT,
+                  {json: params},
+                  (error, res, body) => {
+                      if (error) {
+                          console.error(error)
+                          resolve()
+                          return
+                      }
 
-                  if (res.statusCode == 200) {
-                      s.signal = body.result ? 'buy' : 'sell'
-                  } else {
-                      console.log(`statusCode: ${res.statusCode}`)
-                      console.log(body)
-                  }
+                      if (res.statusCode == 200) {
+                          s.signal = body.result ? 'buy' : 'sell'
+                      } else {
+                          console.log(`statusCode: ${res.statusCode}`)
+                          console.log(body)
+                      }
 
-                  cb()
-              }
-          )
+                      resolve()
+                  }
+              )
+          }).then(() => cb())
+
       } else {
           cb()
       }
